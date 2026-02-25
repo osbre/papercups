@@ -6,6 +6,8 @@ defmodule ChatApiWeb.ConversationChannel do
   alias ChatApi.{Messages, Conversations}
   alias ChatApi.Messages.Message
 
+  require Logger
+
   @impl true
   def join("conversation:lobby", _payload, socket) do
     {:ok, socket}
@@ -78,6 +80,46 @@ defmodule ChatApiWeb.ConversationChannel do
 
   @decorate channel_action()
   def handle_in("shout", payload, socket) do
+    Logger.warn(
+      "'shout' is deprecated as event name on a new message and will be removed in a future version. Please migrate to a newer version of a client."
+    )
+
+    handle_incoming_message("shout", payload, socket)
+  end
+
+  @impl true
+  def handle_in("message:created", payload, socket) do
+    handle_incoming_message("message:created", payload, socket)
+  end
+
+  @decorate channel_action()
+  def handle_in("messages:seen", _payload, socket) do
+    with %{conversation: conversation} <- socket.assigns,
+         %{id: conversation_id} <- conversation do
+      Conversations.mark_agent_messages_as_seen(conversation_id)
+    end
+
+    {:noreply, socket}
+  end
+
+  @spec broadcast_new_message(any(), String.t(), Message.t()) :: Message.t()
+  defp broadcast_new_message(socket, event_name, message) do
+    broadcast(socket, event_name, Messages.Helpers.format(message))
+
+    message
+    |> Messages.Notification.broadcast_to_admin!(event_name)
+    |> Messages.Notification.notify(:slack)
+    # TODO: check if :slack_support_channel and :slack_company_channel are relevant
+    |> Messages.Notification.notify(:slack_support_channel)
+    |> Messages.Notification.notify(:slack_company_channel)
+    |> Messages.Notification.notify(:mattermost)
+    |> Messages.Notification.notify(:new_message_email)
+    |> Messages.Notification.notify(:webhooks)
+    |> Messages.Notification.notify(:push)
+    |> Messages.Helpers.handle_post_creation_hooks()
+  end
+
+  defp handle_incoming_message(event_name, payload, socket) do
     with %{conversation: conversation} <- socket.assigns,
          %{id: conversation_id, account_id: account_id} <- conversation,
          {:ok, message} <-
@@ -91,40 +133,13 @@ defmodule ChatApiWeb.ConversationChannel do
 
       message = Messages.get_message!(message.id)
 
-      broadcast_new_message(socket, message)
+      broadcast_new_message(socket, event_name, message)
     else
       _ ->
-        broadcast(socket, "shout", payload)
+        broadcast(socket, event_name, payload)
     end
 
     {:noreply, socket}
-  end
-
-  @decorate channel_action()
-  def handle_in("messages:seen", _payload, socket) do
-    with %{conversation: conversation} <- socket.assigns,
-         %{id: conversation_id} <- conversation do
-      Conversations.mark_agent_messages_as_seen(conversation_id)
-    end
-
-    {:noreply, socket}
-  end
-
-  @spec broadcast_new_message(any(), Message.t()) :: Message.t()
-  defp broadcast_new_message(socket, message) do
-    broadcast(socket, "shout", Messages.Helpers.format(message))
-
-    message
-    |> Messages.Notification.broadcast_to_admin!()
-    |> Messages.Notification.notify(:slack)
-    # TODO: check if :slack_support_channel and :slack_company_channel are relevant
-    |> Messages.Notification.notify(:slack_support_channel)
-    |> Messages.Notification.notify(:slack_company_channel)
-    |> Messages.Notification.notify(:mattermost)
-    |> Messages.Notification.notify(:new_message_email)
-    |> Messages.Notification.notify(:webhooks)
-    |> Messages.Notification.notify(:push)
-    |> Messages.Helpers.handle_post_creation_hooks()
   end
 
   # Add authorization logic here as required.

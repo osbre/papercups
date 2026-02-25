@@ -11,30 +11,32 @@ defmodule ChatApi.Messages.Notification do
 
   require Logger
 
-  @spec broadcast_to_customer!(Message.t()) :: Message.t()
-  def broadcast_to_customer!(%Message{private: false} = message) do
+  @spec broadcast_to_customer!(Message.t(), String.t()) :: Message.t()
+  def broadcast_to_customer!(message, event_name \\ "shout")
+
+  def broadcast_to_customer!(%Message{private: false} = message, event_name) do
     Logger.info(
       "Sending message notification: broadcast_to_customer! (message #{inspect(message.id)})"
     )
 
     message
     |> Helpers.get_conversation_topic()
-    |> ChatApiWeb.Endpoint.broadcast!("shout", Helpers.format(message))
+    |> ChatApiWeb.Endpoint.broadcast!(event_name, Helpers.format(message))
 
     message
   end
 
-  def broadcast_to_customer!(message), do: message
+  def broadcast_to_customer!(message, _event_name), do: message
 
-  @spec broadcast_to_admin!(Message.t()) :: Message.t()
-  def broadcast_to_admin!(%Message{} = message) do
+  @spec broadcast_to_admin!(Message.t(), String.t()) :: Message.t()
+  def broadcast_to_admin!(%Message{} = message, event_name \\ "shout") do
     Logger.info(
       "Sending message notification: broadcast_to_admin! (message #{inspect(message.id)})"
     )
 
     message
     |> Helpers.get_admin_topic()
-    |> ChatApiWeb.Endpoint.broadcast!("shout", Helpers.format(message))
+    |> ChatApiWeb.Endpoint.broadcast!(event_name, Helpers.format(message))
 
     message
   end

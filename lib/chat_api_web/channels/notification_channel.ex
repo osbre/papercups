@@ -51,33 +51,16 @@ defmodule ChatApiWeb.NotificationChannel do
 
   @decorate channel_action()
   def handle_in("shout", payload, socket) do
-    with %{current_user: current_user} <- socket.assigns,
-         %{id: user_id, account_id: account_id} <- current_user do
-      {:ok, message} =
-        payload
-        |> Map.merge(%{"user_id" => user_id, "account_id" => account_id})
-        |> Messages.create_message()
+    Logger.warn(
+      "'shout' is deprecated as event name on a new message and will be removed in a future version. Please migrate to a newer version of a client."
+    )
 
-      case Map.get(payload, "mentioned_user_ids") do
-        mentioned_user_ids when is_list(mentioned_user_ids) ->
-          Messages.add_mentioned_users(message, mentioned_user_ids)
+    handle_incoming_message("shout", payload, socket)
+  end
 
-        _ ->
-          nil
-      end
-
-      case Map.get(payload, "file_ids") do
-        file_ids when is_list(file_ids) -> Messages.create_attachments(message, file_ids)
-        _ -> nil
-      end
-
-      message.id
-      |> Messages.get_message!()
-      |> broadcast_new_message(socket)
-      |> Messages.Helpers.handle_post_creation_hooks()
-    end
-
-    {:reply, :ok, socket}
+  @impl true
+  def handle_in("message:created", payload, socket) do
+    handle_incoming_message("message:created", payload, socket)
   end
 
   @impl true
@@ -118,12 +101,12 @@ defmodule ChatApiWeb.NotificationChannel do
     {:noreply, socket}
   end
 
-  @spec broadcast_new_message(Message.t(), any()) :: Message.t()
-  defp broadcast_new_message(%Message{private: true} = message, socket) do
+  @spec broadcast_new_message(Message.t(), String.t(), any()) :: Message.t()
+  defp broadcast_new_message(%Message{private: true} = message, event_name, socket) do
     # For private messages, we only need to broadcast back to the admin channel,
     # the internal Slack channel, and webhooks. (We avoid broadcasting to the
     # customer channel or any public Slack channel or email.)
-    broadcast(socket, "shout", Messages.Helpers.format(message))
+    broadcast(socket, event_name, Messages.Helpers.format(message))
 
     message
     |> Messages.Notification.notify(:slack)
@@ -132,11 +115,11 @@ defmodule ChatApiWeb.NotificationChannel do
     |> Messages.Notification.notify(:push)
   end
 
-  defp broadcast_new_message(message, socket) do
-    broadcast(socket, "shout", Messages.Helpers.format(message))
+  defp broadcast_new_message(message, event_name, socket) do
+    broadcast(socket, event_name, Messages.Helpers.format(message))
 
     message
-    |> Messages.Notification.broadcast_to_customer!()
+    |> Messages.Notification.broadcast_to_customer!(event_name)
     |> Messages.Notification.notify(:slack)
     |> Messages.Notification.notify(:slack_support_channel)
     |> Messages.Notification.notify(:slack_company_channel)
@@ -148,6 +131,36 @@ defmodule ChatApiWeb.NotificationChannel do
     |> Messages.Notification.notify(:gmail)
     |> Messages.Notification.notify(:sms)
     |> Messages.Notification.notify(:ses)
+  end
+
+  defp handle_incoming_message(event_name, payload, socket) do
+    with %{current_user: current_user} <- socket.assigns,
+         %{id: user_id, account_id: account_id} <- current_user do
+      {:ok, message} =
+        payload
+        |> Map.merge(%{"user_id" => user_id, "account_id" => account_id})
+        |> Messages.create_message()
+
+      case Map.get(payload, "mentioned_user_ids") do
+        mentioned_user_ids when is_list(mentioned_user_ids) ->
+          Messages.add_mentioned_users(message, mentioned_user_ids)
+
+        _ ->
+          nil
+      end
+
+      case Map.get(payload, "file_ids") do
+        file_ids when is_list(file_ids) -> Messages.create_attachments(message, file_ids)
+        _ -> nil
+      end
+
+      message.id
+      |> Messages.get_message!()
+      |> broadcast_new_message(event_name, socket)
+      |> Messages.Helpers.handle_post_creation_hooks()
+    end
+
+    {:reply, :ok, socket}
   end
 
   @spec authorized?(any(), binary()) :: boolean()
