@@ -269,7 +269,9 @@ defmodule ChatApi.SlackTest do
     test "Notification.validate_send_to_primary_channel/2 returns :ok if a thread already exists",
          %{thread: thread} do
       assert :ok =
-               Slack.Notification.validate_send_to_primary_channel(thread, is_first_message: false)
+               Slack.Notification.validate_send_to_primary_channel(thread,
+                 is_first_message: false
+               )
     end
 
     test "Notification.validate_send_to_primary_channel/2 returns :error if the message when the message is not an initial message and a thread does not exist" do
@@ -1103,7 +1105,9 @@ defmodule ChatApi.SlackTest do
     end
 
     test "Helpers.is_slack_conversation_status_field?/1 checks if a Slack message field is the 'Status' field" do
-      assert Slack.Helpers.is_slack_conversation_status_field?(%{"text" => "*Status:*\nUnhandled"})
+      assert Slack.Helpers.is_slack_conversation_status_field?(%{
+               "text" => "*Status:*\nUnhandled"
+             })
 
       assert Slack.Helpers.is_slack_conversation_status_field?(%{
                "text" => "*Conversation status:*\nIn progress"

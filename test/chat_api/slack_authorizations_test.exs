@@ -152,7 +152,10 @@ defmodule ChatApi.SlackAuthorizationsTest do
                SlackAuthorizations.find_slack_authorization(%{team_id: "T123"})
 
       assert %{id: ^slack_authorization_id} =
-               SlackAuthorizations.find_slack_authorization(%{team_id: "T123", channel_id: "C123"})
+               SlackAuthorizations.find_slack_authorization(%{
+                 team_id: "T123",
+                 channel_id: "C123"
+               })
 
       assert %{id: ^slack_authorization_id} =
                SlackAuthorizations.find_slack_authorization(%{

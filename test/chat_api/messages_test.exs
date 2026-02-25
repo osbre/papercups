@@ -74,7 +74,12 @@ defmodule ChatApi.MessagesTest do
       a = insert(:message, conversation: conversation, account: account)
 
       b =
-        insert(:message, conversation: conversation, account: account, private: true, type: "note")
+        insert(:message,
+          conversation: conversation,
+          account: account,
+          private: true,
+          type: "note"
+        )
 
       c = insert(:message, conversation: conversation, account: account)
 
@@ -94,7 +99,12 @@ defmodule ChatApi.MessagesTest do
       a = insert(:message, conversation: conversation, account: account)
 
       _b =
-        insert(:message, conversation: conversation, account: account, private: true, type: "note")
+        insert(:message,
+          conversation: conversation,
+          account: account,
+          private: true,
+          type: "note"
+        )
 
       c = insert(:message, conversation: conversation, account: account)
 
