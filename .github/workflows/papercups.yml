@@ -15,8 +15,8 @@ jobs:
       - name: Initial setup
         uses: erlef/setup-beam@v1
         with:
-          elixir-version: "1.11.4"
-          otp-version: "23.0.3"
+          elixir-version: "1.20.0-rc.1"
+          otp-version: "28.3.2"
 
       - name: Install dependencies
         run: mix deps.get
@@ -30,11 +30,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Initial setup
-        uses: erlef/setup-beam@v1
-        with:
-          elixir-version: "1.10.4"
-          otp-version: "22.2.6"
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
 
       - name: Install dependencies
         run: npm install --prefix assets
@@ -48,11 +45,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Initial setup
-        uses: erlef/setup-beam@v1
-        with:
-          elixir-version: "1.10.4"
-          otp-version: "22.2.6"
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
 
       - name: Install dependencies
         run: npm install --prefix assets
@@ -88,8 +82,8 @@ jobs:
       - name: Initial setup
         uses: erlef/setup-beam@v1
         with:
-          elixir-version: "1.10.4"
-          otp-version: "22.2.6"
+          elixir-version: "1.20.0-rc.1"
+          otp-version: "28.3.2"
 
       - name: Install dependencies
         run: mix deps.get
